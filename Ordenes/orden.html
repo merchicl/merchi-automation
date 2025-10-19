@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Órdenes — Merchi (Ejecutivos)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f7f7f7; --card:#fff; --ink:#111; --muted:#666;
+      --bd:#ddd; --bd2:#eee; --ok:#1a7f37; --err:#b00020; --brand:#0b53d0;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Arial,system-ui,sans-serif;background:var(--bg);margin:0;color:var(--ink)}
+    .wrap{max-width:980px;margin:0 auto;padding:24px; padding-bottom:96px;}
+    .card{background:var(--card);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08);padding:22px;position:relative}
+    h1{font-size:22px;margin:0 0 6px}
+    h2{font-size:18px;margin:0 0 10px}
+    h3{font-size:16px;margin:0 0 6px}
+    p.sub{margin:0 0 16px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .full{grid-column:1/-1}
+    label{font-weight:600;font-size:14px;display:block;margin:6px 0}
+    input:not([type="checkbox"]):not([type="radio"]), select, textarea{
+      width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;font-size:15px;background:#fff
+    }
+    textarea{min-height:80px;resize:vertical}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .muted{color:var(--muted);font-size:13px}
+    .err{color:var(--err);font-size:13px;margin-top:4px;display:none}
+    .is-error{border-color:var(--err)}
+    .ok{color:var(--ok);font-weight:600}
+    .bad{color:var(--err);font-weight:600}
+    .btn{padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-size:14px}
+    .btn-primary{background:#000;color:#fff}
+    .btn-secondary{background:#f1f1f1}
+    .btn[disabled]{opacity:.7;cursor:not-allowed}
+    .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+
+    /* Autocomplete */
+    .ac-wrap{position:relative}
+    .ac-list{
+      position:absolute;z-index:20;left:0;right:0;top:100%;background:#fff;border:1px solid var(--bd);
+      border-radius:10px;margin-top:4px;box-shadow:0 8px 24px rgba(0,0,0,.08);max-height:260px;overflow:auto;display:none
+    }
+    .ac-item{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--bd2)}
+    .ac-item:last-child{border-bottom:0}
+    .ac-item:hover{background:#f5f7ff}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--bd);font-size:12px;color:#333;background:#fafafa;margin-left:6px}
+
+    /* Bloque producto */
+    .item{border:1px solid var(--bd2); border-radius:12px; padding:12px; background:#fff}
+    .item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .item-title{font-weight:700;color:#333}
+    .item-actions{display:flex;gap:8px}
+    .items-wrap{display:grid;gap:12px}
+
+    /* Secciones separadas */
+    .section{background:#fff;border:1px solid var(--bd2);border-radius:12px;padding:14px;margin-top:16px}
+    .section > .title{font-weight:700;margin-bottom:6px}
+
+    /* Logo */
+    .logo-container{text-align:center;margin-bottom:16px}
+    .logo{max-width:160px;height:auto}
+
+    /* Miscelánea */
+    .file-url{font-size:12px;color:#333;word-break:break-all}
+    .small{font-size:12px;padding-left:16px;margin:6px 0}
+
+    @media (max-width:820px){ .grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo-container">
+      <img class="logo" src="https://merchi.cl/wp-content/uploads/2025/10/Logo-Merchi-Azul.png" alt="Merchi">
+    </div>
+
+    <div class="card">
+      <h1>Ingreso de Órdenes — Merchi</h1>
+      <p class="sub">Documento para ejecutivos. Selecciona o pega el cliente, indica la cotización y agrega uno o más productos.</p>
+
+      <form id="ordenForm" novalidate>
+        <!-- Cliente -->
+        <div class="section">
+          <div class="title">Cliente</div>
+          <div class="grid">
+            <div>
+              <label for="cliente_id">ID Cliente</label>
+              <input id="cliente_id" name="cliente_id" placeholder="Pega ID (opcional). Ej: A1B2C">
+              <div class="muted">Si pegas un ID válido, se completará la Razón Social automáticamente.</div>
+            </div>
+
+            <div class="full ac-wrap">
+              <label for="razon_social">Razón Social (autocompletar) *</label>
+              <input id="razon_social" name="razon_social" placeholder="Escribe para buscar…" autocomplete="off" required>
+              <div class="ac-list" id="acList"></div>
+              <div class="err" id="err-razon">Selecciona o escribe una razón social.</div>
+            </div>
+
+            <div class="full">
+              <label for="cotizacion_num">Nº de cotización</label>
+              <input id="cotizacion_num" name="cotizacion_num" placeholder="Ej: 4852">
+            </div>
+          </div>
+        </div>
+
+        <!-- Orden de compra (OPCIONAL) -->
+        <div class="section">
+          <div class="title">Orden de compra (opcional)</div>
+          <div class="grid">
+            <div>
+              <label for="oc_num">Nº Orden de compra</label>
+              <input id="oc_num" name="oc_num" placeholder="Ej: OC-2025-00123">
+            </div>
+            <div>
+              <label for="oc_fecha">Fecha Orden de compra</label>
+              <input type="date" id="oc_fecha" name="oc_fecha">
+            </div>
+            <div class="full">
+              <label>Adjunto Orden de compra</label>
+              <input type="file" id="oc_file" accept=".pdf,.png,.jpg,.jpeg,.svg,.ai">
+              <div class="file-url" id="oc_file_url_show"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Entrega común -->
+        <div class="section">
+          <div class="title">Entrega</div>
+          <label class="row" style="cursor:pointer">
+            <input type="checkbox" id="chkSameDate"> ¿Todos los ítems con la misma fecha?
+          </label>
+
+          <div id="sameDateWrap" class="grid" style="display:none; margin-top:6px">
+            <div>
+              <label for="commonMode">Modo (para todos)</label>
+              <select id="commonMode">
+                <option value="dias">Por días hábiles</option>
+                <option value="fecha">Por fecha exacta</option>
+              </select>
+            </div>
+
+            <div id="commonDaysWrap">
+              <label for="commonDays">Días hábiles *</label>
+              <input type="number" id="commonDays" min="0" placeholder="Ej: 7">
+              <div class="muted">Calcularemos la fecha (sin fines de semana/feriados).</div>
+            </div>
+
+            <div id="commonDateWrap" style="display:none">
+              <label for="commonDate">Fecha de entrega *</label>
+              <input type="date" id="commonDate">
+            </div>
+
+            <div class="full">
+              <label>Fecha calculada</label>
+              <input id="commonDateCalc" placeholder="—" readonly>
+            </div>
+          </div>
+        </div>
+
+        <!-- Productos -->
+        <div class="section">
+          <div class="title">Productos</div>
+          <div id="items" class="items-wrap" style="margin-top:10px"></div>
+          <div class="row" style="justify-content:flex-end; margin-top:10px">
+            <button type="button" id="btnAdd" class="btn btn-secondary">+ Agregar producto</button>
+          </div>
+
+          <template id="itemTpl">
+            <div class="item">
+              <div class="item-head">
+                <div class="item-title">Producto</div>
+                <div class="item-actions">
+                  <button type="button" class="btn btn-secondary btnDup">Duplicar</button>
+                  <button type="button" class="btn btn-secondary btnClear">Limpiar</button>
+                  <button type="button" class="btn btn-secondary btnUp">↑</button>
+                  <button type="button" class="btn btn-secondary btnDown">↓</button>
+                  <button type="button" class="btn btn-secondary btnDel" style="background:#ffe9ea;color:#b00020;border:1px solid #ffd0d4">Eliminar</button>
+                </div>
+              </div>
+              <div class="grid">
+                <div>
+                  <label>Producto *</label>
+                  <input class="i-producto" placeholder="Ej: Polera, Tazón, Mochila" required>
+                  <div class="err e-producto">Ingresa el producto.</div>
+                </div>
+                <div>
+                  <label>Color *</label>
+                  <input class="i-color" placeholder="Ej: Blanco, Negro, Azul" required>
+                  <div class="err e-color">Ingresa el color.</div>
+                </div>
+                <div>
+                  <label>Cantidad *</label>
+                  <input class="i-cantidad" type="number" min="1" placeholder="Ej: 100" required>
+                  <div class="err e-cantidad">Ingresa una cantidad válida (≥1).</div>
+                </div>
+
+                <!-- MÉTODO DE IMPRESIÓN + lógicas -->
+                <div>
+                  <label>Método de impresión *</label>
+                  <select class="i-metodo" required>
+                    <option value="">Selecciona</option>
+                    <option>Serigrafía</option>
+                    <option>Sublimación</option>
+                    <option>Grabado láser</option>
+                    <option>Bordado</option>
+                    <option>Bordado 3D</option>
+                    <option>Tampografía</option>
+                    <option>Impresión digital</option>
+                    <option>DTF Textil</option>
+                    <option>DTF UV</option>
+                  </select>
+                  <div class="err e-metodo">Selecciona el método de impresión.</div>
+                </div>
+
+                <!-- Colores (solo Serigrafía/Tampografía) -->
+                <div class="full colores-wrap" style="display:none">
+                  <label>Cantidad de colores *</label>
+                  <input class="i-colores" type="number" min="1" placeholder="Ej: 1, 2, 3…">
+                  <div class="err e-colores">Indica la cantidad de colores.</div>
+                </div>
+
+                <!-- Grabado láser: nombres personalizados -->
+                <div class="full grabado-wrap" style="display:none">
+                  <label class="row" style="cursor:pointer">
+                    <input type="checkbox" class="i-grabado-nombres"> ¿Incluir nombres personalizados?
+                  </label>
+                  <div class="grid grabado-file-wrap" style="display:none">
+                    <div class="full">
+                      <label>Archivo de nombres (CSV/Excel/Texto/Imagen)</label>
+                      <input type="file" class="i-nombres-file" accept=".csv,.xlsx,.xls,.txt,.png,.jpg,.jpeg,.pdf">
+                      <div class="file-url i-nombres-url"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ENTREGA por ítem -->
+                <div class="full">
+                  <label>Entrega *</label>
+                  <div class="grid">
+                    <div>
+                      <label>Modo</label>
+                      <select class="i-entrega-modo">
+                        <option value="dias">Por días hábiles</option>
+                        <option value="fecha">Por fecha exacta</option>
+                      </select>
+                    </div>
+                    <div class="entrega-dias-wrap">
+                      <label>Días hábiles *</label>
+                      <input class="i-dias" type="number" min="0" placeholder="Ej: 7">
+                      <div class="muted">Calculamos la fecha (sin fines de semana/feriados).</div>
+                      <div class="err e-dias">Ingresa días hábiles (0 o más).</div>
+                    </div>
+                    <div class="entrega-fecha-wrap" style="display:none">
+                      <label>Fecha de entrega *</label>
+                      <input type="date" class="i-fecha">
+                      <div class="err e-fecha">Selecciona la fecha de entrega.</div>
+                    </div>
+                    <div class="full">
+                      <label>Fecha calculada</label>
+                      <input class="i-fecha-calc" placeholder="—" readonly>
+                      <div class="muted">Se rellena cuando usas “Por días hábiles”.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ARCHIVOS: múltiples (logos/arte) -->
+                <div class="full">
+                  <label>Archivos / Logos del producto (múltiples)</label>
+                  <input type="file" class="i-files" multiple accept=".png,.jpg,.jpeg,.pdf,.ai,.svg">
+                  <div class="file-url i-urls"></div>
+                </div>
+
+                <!-- NOTAS por producto -->
+                <div class="full">
+                  <label>Notas del producto (se incluirán en el correo)</label>
+                  <textarea class="i-notas" placeholder="Ubicación, tamaño, observaciones por este producto…"></textarea>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Pago -->
+        <div class="section">
+          <div class="title">Condición de Pago</div>
+          <div class="grid">
+            <div>
+              <label for="pago_condicion">Condición de pago</label>
+              <select id="pago_condicion">
+                <option>Contado</option>
+                <option>Al día</option>
+                <option>50%,50%</option>
+                <option>30 días</option>
+                <option>Personalizado</option>
+              </select>
+            </div>
+            <div id="pago_detalle_wrap" style="display:none">
+              <label for="pago_detalle">Detalle (si es personalizado)</label>
+              <input id="pago_detalle" placeholder="Ej: 50% hoy, 50% en 30 días; 3 cuotas…">
+            </div>
+          </div>
+        </div>
+
+        <!-- Transporte -->
+        <div class="section">
+          <div class="title">Transporte</div>
+          <div class="grid">
+            <div>
+              <label for="transporte_modo">Modo</label>
+              <select id="transporte_modo">
+                <option>Sin Costo</option>
+                <option>Pagado</option>
+                <option>Por pagar</option>
+                <option>Retiro taller</option>
+              </select>
+            </div>
+            <div>
+              <label for="transporte_pref">Preferencia</label>
+              <select id="transporte_pref">
+                <option>Transporte Local</option>
+                <option>Starken</option>
+                <option>Blue</option>
+                <option>Chilexpress</option>
+                <option>Pullman Go</option>
+                <option>TVP</option>
+                <option>Varmontt</option>
+                <option>Otro</option>
+                <option>Por definir</option>
+              </select>
+            </div>
+            <div class="full" id="transporte_detalle_wrap" style="display:none">
+              <label for="transporte_detalle">Detalle (si es “Otro”, sucursal o instrucciones)</label>
+              <input id="transporte_detalle" placeholder="Sucursal, horario, instrucción, dirección…">
+            </div>
+          </div>
+          <p class="muted">*El costo del transporte se define en “Totales de la Orden”.</p>
+        </div>
+
+        <!-- Totales (AL FINAL) -->
+        <div class="section">
+          <div class="title">Totales de la Orden</div>
+          <div class="grid">
+            <div>
+              <label for="precio_final">Precio final de la orden *</label>
+              <input id="precio_final" name="precio_final" inputmode="numeric" placeholder="$ 0" required>
+              <div class="err" id="err-precio">Ingresa un precio válido (>0).</div>
+            </div>
+            <div>
+              <label for="costo_transporte">Costo de transporte</label>
+              <input id="costo_transporte" name="costo_transporte" inputmode="numeric" placeholder="$ 0">
+              <div class="muted">No repitas el precio del transporte aquí; ya se descuenta para “Venta sin transporte”.</div>
+            </div>
+            <div class="full">
+              <label for="descuento_aplicado">Venta sin transporte</label>
+              <input id="descuento_aplicado" name="descuento_aplicado" placeholder="$ 0" readonly>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">Guardar orden</button>
+        </div>
+      </form>
+
+      <div id="out" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <script>
+    /* ======= Feriados opcionales (YYYY-MM-DD) ======= */
+    const FERIADOS_CL = [ /* '2025-01-01','2025-05-01', ... */ ];
+    const toYMD = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const isWeekend = d => d.getDay()===0 || d.getDay()===6;
+    const isHoliday = (d,set) => set.has(toYMD(d));
+    function addBusinessDays(startDate, days, holidays=[]){
+      const set = new Set(holidays);
+      const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      let remaining = parseInt(days,10) || 0;
+      while (remaining > 0) {
+        d.setDate(d.getDate()+1);
+        if(!isWeekend(d) && !isHoliday(d,set)) remaining--;
+      }
+      return d;
+    }
+
+    // ======= Estado base clientes =======
+    let CLIENTES = [];
+    const form = document.getElementById('ordenForm');
+    const out  = document.getElementById('out');
+    const elId     = document.getElementById('cliente_id');
+    const elRazon  = document.getElementById('razon_social');
+    const acList   = document.getElementById('acList');
+
+    const itemsWrap = document.getElementById('items');
+    const itemTpl   = document.getElementById('itemTpl');
+    const btnAdd    = document.getElementById('btnAdd');
+
+    // Campo cotización
+    const elCot = document.getElementById('cotizacion_num');
+
+    // "misma fecha"
+    const chkSameDate   = document.getElementById('chkSameDate');
+    const sameDateWrap  = document.getElementById('sameDateWrap');
+    const commonMode    = document.getElementById('commonMode');
+    const commonDaysWrap= document.getElementById('commonDaysWrap');
+    const commonDateWrap= document.getElementById('commonDateWrap');
+    const commonDays    = document.getElementById('commonDays');
+    const commonDate    = document.getElementById('commonDate');
+    const commonDateCalc= document.getElementById('commonDateCalc');
+
+    // Totales
+    const precioEl  = document.getElementById('precio_final');
+    const transpEl  = document.getElementById('costo_transporte');
+    const descEl    = document.getElementById('descuento_aplicado');
+
+    // OC
+    const ocFile     = document.getElementById('oc_file');
+    const ocUrlShow  = document.getElementById('oc_file_url_show');
+
+    // Pago & Transporte
+    const pagoCondEl = document.getElementById('pago_condicion');
+    const pagoDetWrap= document.getElementById('pago_detalle_wrap');
+    const pagoDetEl  = document.getElementById('pago_detalle');
+    const transpModoEl = document.getElementById('transporte_modo');
+    const transpPrefEl = document.getElementById('transporte_pref');
+    const transpDetWrap= document.getElementById('transporte_detalle_wrap');
+    const transpDetEl  = document.getElementById('transporte_detalle');
+
+    const showErr = (id, show) => { const el=document.getElementById(id); if(el) el.style.display = show?'block':'none'; };
+    const mark = (el, bad) => { if(!el) return; el.classList.toggle('is-error', !!bad); };
+
+    // ======= CLP (front) =======
+    const fmtCLP = new Intl.NumberFormat('es-CL', { style:'currency', currency:'CLP', maximumFractionDigits:0 });
+    const parseCLP = str => parseInt((str||'').replace(/[^\d]/g,''),10) || 0;
+    const setCLP = (el, val) => el.value = fmtCLP.format(Math.max(0, Math.floor(val||0)));
+    const recomputeVentaSinTransporte = ()=>{
+      const precio = parseCLP(precioEl.value);
+      const transp = parseCLP(transpEl.value);
+      const ventaSin = Math.max(0, precio - transp);
+      setCLP(descEl, ventaSin);
+    };
+    function attachMoneyMask(el, onChange){
+      el.addEventListener('input', ()=>{
+        const v = parseCLP(el.value);
+        setCLP(el, v);
+        if(onChange) onChange(v);
+      });
+      setCLP(el, parseCLP(el.value));
+    }
+    attachMoneyMask(precioEl, recomputeVentaSinTransporte);
+    attachMoneyMask(transpEl, recomputeVentaSinTransporte);
+    setCLP(descEl, 0);
+
+    // ======= Autocomplete =======
+    function renderAC(items){
+      if(!items || !items.length){ acList.style.display='none'; acList.innerHTML=''; return; }
+      acList.innerHTML = items.map(c =>
+        `<div class="ac-item" data-id="${c.id}" data-razon="${(c.razon||'').replace(/"/g,'&quot;')}">
+          ${c.razon || ''} <span class="pill">${c.id||'s/ID'}</span>
+        </div>`).join('');
+      acList.style.display='block';
+    }
+    function filterClientes(q){
+      q=(q||'').trim().toLowerCase();
+      if(!q) return [];
+      return CLIENTES.filter(c => (c.razon||'').toLowerCase().includes(q) || (c.id||'').toLowerCase().includes(q)).slice(0,30);
+    }
+    elRazon.addEventListener('input', ()=>{ renderAC(filterClientes(elRazon.value)); });
+    elRazon.addEventListener('focus', ()=>{ renderAC(filterClientes(elRazon.value)); });
+    document.addEventListener('click', (e)=>{ if(!acList.contains(e.target) && e.target!==elRazon){ acList.style.display='none'; } });
+    acList.addEventListener('click', (e)=>{
+      const item = e.target.closest('.ac-item'); if(!item) return;
+      elRazon.value = item.getAttribute('data-razon') || '';
+      elId.value = item.getAttribute('data-id') || '';
+      acList.style.display='none';
+    });
+
+    // ======= FIX: completar razón social al pegar/escribir/cambiar =======
+    function syncRazonFromId(){
+      const v = (elId.value || '')
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') // quita zero-width
+        .trim()
+        .toUpperCase();
+      if (!v || !Array.isArray(CLIENTES) || CLIENTES.length === 0) return;
+      const hit = CLIENTES.find(c => (c.id || '').toUpperCase() === v);
+      if (hit && hit.razon) elRazon.value = hit.razon;
+    }
+    elId.addEventListener('input', syncRazonFromId);
+    elId.addEventListener('change', syncRazonFromId);
+    elId.addEventListener('paste', () => setTimeout(syncRazonFromId, 0));
+
+    // ======= DELEGACIÓN DE EVENTOS para acciones en ítems =======
+    itemsWrap.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button'); 
+      if (!btn) return;
+      const block = e.target.closest('.item');
+      if (!block) return;
+
+      if (btn.classList.contains('btnDel')){
+        if (itemsWrap.children.length <= 1) {
+          block.querySelectorAll('input,select,textarea').forEach(el=> el.type==='file'? (el.value='') : (el.value=''));
+          block.querySelectorAll('.err').forEach(e=>e.style.display='none');
+          block.querySelectorAll('input,select,textarea').forEach(el=>el.classList.remove('is-error'));
+          block.dataset.fileUrls = JSON.stringify([]);
+          const u = block.querySelector('.i-urls'); if (u) u.textContent = '';
+          block.dataset.grabadoUrl = '';
+          const nu = block.querySelector('.i-nombres-url'); if (nu) nu.textContent = '';
+          const ch = block.querySelector('.i-grabado-nombres'); if (ch) ch.checked = false;
+          const fw = block.querySelector('.grabado-file-wrap'); if (fw) fw.style.display = 'none';
+        } else {
+          block.remove();
+        }
+      }
+
+      if (btn.classList.contains('btnClear')){
+        block.querySelectorAll('input,select,textarea').forEach(el=> el.type==='file'? (el.value='') : (el.value=''));
+        block.dataset.fileUrls = JSON.stringify([]);
+        const ub = block.querySelector('.i-urls'); if (ub) ub.textContent = '';
+        block.dataset.grabadoUrl = '';
+        const nu = block.querySelector('.i-nombres-url'); if (nu) nu.textContent = '';
+        const ch = block.querySelector('.i-grabado-nombres'); if (ch) ch.checked = false;
+        const fw = block.querySelector('.grabado-file-wrap'); if (fw) fw.style.display = 'none';
+      }
+
+      if (btn.classList.contains('btnUp')){
+        const prev = block.previousElementSibling;
+        if (prev) itemsWrap.insertBefore(block, prev);
+      }
+
+      if (btn.classList.contains('btnDown')){
+        const next = block.nextElementSibling;
+        if (next) itemsWrap.insertBefore(next, block);
+      }
+
+      if (btn.classList.contains('btnDup')){
+        const clone = block.cloneNode(true);
+        // limpiar estados transitorios del clon
+        clone.dataset.fileUrls = JSON.stringify([]);
+        const f1 = clone.querySelector('.i-files'); if (f1) f1.value='';
+        const u1 = clone.querySelector('.i-urls');  if (u1) u1.textContent='';
+        clone.dataset.grabadoUrl = '';
+        const f2 = clone.querySelector('.i-nombres-file'); if (f2) f2.value='';
+        const u2 = clone.querySelector('.i-nombres-url');  if (u2) u2.textContent='';
+        const ch = clone.querySelector('.i-grabado-nombres'); if (ch) ch.checked = false;
+        const fw = clone.querySelector('.grabado-file-wrap'); if (fw) fw.style.display = 'none';
+
+        itemsWrap.insertBefore(clone, block.nextSibling);
+        wireItem(clone); // re-enlazar lógicas del clon
+      }
+    });
+
+    // ======= Helpers de upload (con folderName) =======
+    const fileToDataURL = file => new Promise((resolve,reject)=>{
+      const fr = new FileReader(); fr.onload=()=>resolve(fr.result); fr.onerror=reject; fr.readAsDataURL(file);
+    });
+    // fnName: 'uploadLogo' | 'uploadOC'
+    const uploadDataUrl = (fnName, name, type, dataUrl, folderName) => new Promise(resolve=>{
+      google.script.run
+        .withSuccessHandler(resp=>resolve(resp))
+        .withFailureHandler(err=>resolve({ ok:false, message:(err && err.message)?err.message:String(err) }))
+        [fnName]({ name, type, data: dataUrl, folderName: folderName || '' });
+    });
+
+    /* ======= Wire lógicas de cada Item (función global para reutilizar) ======= */
+    function wireItem(block){
+      // entrega
+      const modo = block.querySelector('.i-entrega-modo');
+      const wrapDias  = block.querySelector('.entrega-dias-wrap');
+      const wrapFecha = block.querySelector('.entrega-fecha-wrap');
+      const dias  = block.querySelector('.i-dias');
+      const fecha = block.querySelector('.i-fecha');
+      const fechaCalc = block.querySelector('.i-fecha-calc');
+
+      // archivos múltiples (logos)
+      const filesInput = block.querySelector('.i-files');
+      const urlsBox = block.querySelector('.i-urls');
+      block.dataset.fileUrls = JSON.stringify([]);
+
+      filesInput.addEventListener('change', async ()=>{
+        if (!filesInput.files.length) return;
+        urlsBox.textContent = 'Subiendo…';
+        const newUrls = [];
+        const folderName = (document.getElementById('razon_social').value || '').trim();
+        for (const f of filesInput.files){
+          const dataUrl = await fileToDataURL(f);
+          const resp = await uploadDataUrl('uploadLogo', f.name, f.type, dataUrl, folderName);
+          if (resp && resp.ok && resp.url) newUrls.push(resp.url);
+          else throw new Error('Error al subir archivo: ' + (resp && resp.message ? resp.message : 'desconocido'));
+        }
+        const current = JSON.parse(block.dataset.fileUrls || '[]');
+        const merged = current.concat(newUrls);
+        block.dataset.fileUrls = JSON.stringify(merged);
+        urlsBox.innerHTML = merged.length ? ('<ul class="small">'+ merged.map(u => `<li>${u}</li>`).join('') + '</ul>') : '';
+        filesInput.value = '';
+      });
+
+      // Método + lógicas
+      const metodoSel = block.querySelector('.i-metodo');
+      const coloresWrap = block.querySelector('.colores-wrap');
+      const coloresEl   = block.querySelector('.i-colores');
+      const eColores    = block.querySelector('.e-colores');
+
+      const grabadoWrap = block.querySelector('.grabado-wrap');
+      const grabadoCheck= block.querySelector('.i-grabado-nombres');
+      const grabadoFileWrap = block.querySelector('.grabado-file-wrap');
+      const grabadoFile = block.querySelector('.i-nombres-file');
+      const grabadoUrlBox = block.querySelector('.i-nombres-url');
+      block.dataset.grabadoUrl = '';
+
+      function applyMetodoUI(){
+        const v = (metodoSel.value || '').toLowerCase();
+        const isSeriTampo = (v==='serigrafía' || v==='serigrafia' || v==='tampografía' || v==='tampografia');
+        const isGrabado = (v==='grabado láser' || v==='grabado laser');
+
+        coloresWrap.style.display = isSeriTampo ? 'block' : 'none';
+        if (!isSeriTampo){ coloresEl.value=''; eColores.style.display='none'; }
+
+        grabadoWrap.style.display = isGrabado ? 'block' : 'none';
+        if (!isGrabado){
+          grabadoCheck.checked = false;
+          grabadoFileWrap.style.display='none';
+          grabadoFile.value='';
+          block.dataset.grabadoUrl = '';
+          grabadoUrlBox.textContent = '';
+        }
+      }
+      metodoSel.addEventListener('change', applyMetodoUI);
+      applyMetodoUI();
+
+      grabadoCheck?.addEventListener('change', ()=>{
+        grabadoFileWrap.style.display = grabadoCheck.checked ? 'grid' : 'none';
+        if (!grabadoCheck.checked){
+          grabadoFile.value='';
+          block.dataset.grabadoUrl='';
+          grabadoUrlBox.textContent='';
+        }
+      });
+      grabadoFile?.addEventListener('change', async ()=>{
+        if (!grabadoFile.files[0]) return;
+        grabadoUrlBox.textContent = 'Subiendo…';
+        const f = grabadoFile.files[0];
+        const dataUrl = await fileToDataURL(f);
+        const folderName = (document.getElementById('razon_social').value || '').trim();
+        const resp = await uploadDataUrl('uploadLogo', f.name, f.type, dataUrl, folderName);
+        if (resp && resp.ok && resp.url){
+          block.dataset.grabadoUrl = resp.url;
+          grabadoUrlBox.textContent = resp.url;
+        } else {
+          grabadoUrlBox.textContent = '⚠️ Error al subir';
+        }
+      });
+
+      // modo de entrega
+      function applyItemMode(){
+        const useDias = (modo.value==='dias');
+        wrapDias.style.display  = useDias ? 'block' : 'none';
+        wrapFecha.style.display = useDias ? 'none'  : 'block';
+        if (chkSameDate.checked){
+          dias.setAttribute('disabled','disabled');
+          fecha.setAttribute('disabled','disabled');
+        } else {
+          if (useDias){
+            dias.removeAttribute('disabled');
+            fecha.setAttribute('disabled','disabled');
+            if (dias.value !== ''){
+              const base = new Date();
+              const d = addBusinessDays(base, parseInt(dias.value,10)||0, FERIADOS_CL);
+              fecha.value = toYMD(d);
+              fechaCalc.value = d.toLocaleDateString('es-CL');
+            } else {
+              fecha.value = '';
+              fechaCalc.value = '—';
+            }
+          } else {
+            fecha.removeAttribute('disabled');
+            dias.setAttribute('disabled','disabled');
+            fechaCalc.value = fecha.value ? new Date(fecha.value).toLocaleDateString('es-CL') : '—';
+          }
+        }
+      }
+      modo.addEventListener('change', applyItemMode);
+      dias.addEventListener('input', ()=>{
+        const base = new Date();
+        const d = addBusinessDays(base, parseInt(dias.value,10)||0, FERIADOS_CL);
+        fecha.value = dias.value === '' ? '' : toYMD(d);
+        fechaCalc.value = dias.value === '' ? '—' : d.toLocaleDateString('es-CL');
+      });
+      fecha.addEventListener('change', ()=>{
+        if (modo.value==='fecha'){
+          fechaCalc.value = fecha.value ? new Date(fecha.value).toLocaleDateString('es-CL') : '—';
+        }
+      });
+
+      applyItemMode();
+    }
+
+    // ======= Agregar ítem =======
+    function addItem(prefill){
+      const node = itemTpl.content.firstElementChild.cloneNode(true);
+      wireItem(node);
+      if (prefill){
+        node.querySelector('.i-producto').value = prefill.producto || '';
+        node.querySelector('.i-color').value    = prefill.color || '';
+        node.querySelector('.i-cantidad').value = prefill.cantidad || '';
+        node.querySelector('.i-metodo').value   = prefill.metodo || '';
+      }
+      itemsWrap.appendChild(node);
+      if (chkSameDate.checked) propagateCommonToItems();
+    }
+    btnAdd.addEventListener('click', ()=> addItem());
+    addItem(); // inicial
+
+    // ======= "misma fecha" =======
+    function computeCommonDateFromDays(){
+      const n = parseInt(commonDays.value,10);
+      if (isNaN(n) || n<0){
+        commonDate.value = '';
+        commonDateCalc.value = '—';
+        return '';
+      }
+      const base = new Date();
+      const d = addBusinessDays(base, n, FERIADOS_CL);
+      commonDate.value = toYMD(d);
+      commonDateCalc.value = d.toLocaleDateString('es-CL');
+      return commonDate.value;
+    }
+    function applyCommonControlsVisibility(){
+      const useDias = (commonMode.value === 'dias');
+      commonDaysWrap.style.display = useDias ? 'block' : 'none';
+      commonDateWrap.style.display = useDias ? 'none'  : 'block';
+      if (useDias) computeCommonDateFromDays();
+      else commonDateCalc.value = commonDate.value ? new Date(commonDate.value).toLocaleDateString('es-CL') : '—';
+    }
+    function propagateCommonToItems(){
+      if (!chkSameDate.checked) return;
+      const useDias = (commonMode.value === 'dias');
+      const dateStr = useDias ? computeCommonDateFromDays() : (commonDate.value || '');
+      const daysVal = useDias ? ((commonDays.value!=='' ? String(parseInt(commonDays.value,10)||0) : '')) : '';
+
+      Array.from(itemsWrap.children).forEach(block=>{
+        const modo   = block.querySelector('.i-entrega-modo');
+        const dias   = block.querySelector('.i-dias');
+        theFecha  = block.querySelector('.i-fecha'); // no hace falta "the", pero ok
+        const fecha  = block.querySelector('.i-fecha');
+        const fcalc  = block.querySelector('.i-fecha-calc');
+        const wrapDias  = block.querySelector('.entrega-dias-wrap');
+        const wrapFecha = block.querySelector('.entrega-fecha-wrap');
+
+        modo.value = useDias ? 'dias' : 'fecha';
+        modo.setAttribute('disabled','disabled');
+        dias.setAttribute('disabled','disabled');
+        fecha.setAttribute('disabled','disabled');
+
+        if (useDias){
+          wrapDias.style.display  = 'block';
+          wrapFecha.style.display = 'none';
+          dias.value = daysVal;
+          fecha.value = dateStr || '';
+          fcalc.value = dateStr ? new Date(dateStr).toLocaleDateString('es-CL') : '—';
+        } else {
+          wrapDias.style.display  = 'none';
+          wrapFecha.style.display = 'block';
+          dias.value = '';
+          fecha.value = dateStr || '';
+          fcalc.value = dateStr ? new Date(dateStr).toLocaleDateString('es-CL') : '—';
+        }
+      });
+    }
+    function setCommonDateMode(on){
+      sameDateWrap.style.display = on ? 'grid' : 'none';
+      applyCommonControlsVisibility();
+      if (on) propagateCommonToItems();
+      else {
+        Array.from(itemsWrap.children).forEach(block=>{
+          const modo   = block.querySelector('.i-entrega-modo');
+          const dias   = block.querySelector('.i-dias');
+          const fecha  = block.querySelector('.i-fecha');
+          const wrapDias  = block.querySelector('.entrega-dias-wrap');
+          const wrapFecha = block.querySelector('.entrega-fecha-wrap');
+
+          modo.removeAttribute('disabled');
+          if (modo.value==='dias'){
+            dias.removeAttribute('disabled');
+            fecha.setAttribute('disabled','disabled');
+            wrapDias.style.display='block';
+            wrapFecha.style.display='none';
+          } else {
+            fecha.removeAttribute('disabled');
+            dias.setAttribute('disabled','disabled');
+            wrapDias.style.display='none';
+            wrapFecha.style.display='block';
+          }
+        });
+      }
+    }
+    chkSameDate.addEventListener('change', ()=> setCommonDateMode(chkSameDate.checked));
+    commonMode.addEventListener('change', ()=> { if (chkSameDate.checked){ applyCommonControlsVisibility(); propagateCommonToItems(); } });
+    commonDays.addEventListener('input', ()=>{ if (chkSameDate.checked){ applyCommonControlsVisibility(); propagateCommonToItems(); } });
+    commonDate.addEventListener('change', ()=>{ if (chkSameDate.checked){ applyCommonControlsVisibility(); propagateCommonToItems(); } });
+
+    // ======= Validación =======
+    function validate(){
+      let ok=true;
+      // Cliente
+      const razonOk = !!elRazon.value.trim();
+      showErr('err-razon', !razonOk); mark(elRazon, !razonOk); ok &= razonOk;
+
+      // Totales
+      const precioVal = parseCLP(precioEl.value);
+      const transpVal = parseCLP(transpEl.value);
+      showErr('err-precio', !(precioVal>0)); mark(precioEl, !(precioVal>0)); ok &= (precioVal>0);
+      if (transpVal<0) { mark(transpEl,true); ok &= false; } else { mark(transpEl,false); }
+
+      // Entrega común
+      if (chkSameDate.checked){
+        if (commonMode.value === 'dias'){
+          const okDias = (commonDays.value !== '' && parseInt(commonDays.value,10) >= 0);
+          if (!okDias) { commonDays.classList.add('is-error'); ok = false; }
+          else { commonDays.classList.remove('is-error'); }
+        } else {
+          const okFecha = !!commonDate.value;
+          if (!okFecha) { commonDate.classList.add('is-error'); ok = false; }
+          else { commonDate.classList.remove('is-error'); }
+        }
+      }
+
+      // Ítems
+      Array.from(itemsWrap.children).forEach(block=>{
+        const p = block.querySelector('.i-producto');
+        const c = block.querySelector('.i-color');
+        const q = block.querySelector('.i-cantidad');
+        const m = block.querySelector('.i-metodo');
+
+        const eP = block.querySelector('.e-producto');
+        const eC = block.querySelector('.e-color');
+        const eQ = block.querySelector('.e-cantidad');
+        const eM = block.querySelector('.e-metodo');
+
+        const vP = !!p.value.trim();
+        const vC = !!c.value.trim();
+        const vQ = (parseInt(q.value,10) >= 1);
+        const vM = !!m.value.trim();
+
+        eP.style.display = vP ? 'none':'block'; mark(p, !vP); ok &= vP;
+        eC.style.display = vC ? 'none':'block'; mark(c, !vC); ok &= vC;
+        eQ.style.display = vQ ? 'none':'block'; mark(q, !vQ); ok &= vQ;
+        eM.style.display = vM ? 'none':'block'; mark(m, !vM); ok &= vM;
+
+        // Validaciones según método
+        const metodo = (m.value||'').toLowerCase();
+        const coloresEl = block.querySelector('.i-colores');
+        const eColores = block.querySelector('.e-colores');
+        const grabadoCheck = block.querySelector('.i-grabado-nombres');
+        const grabadoUrl = block.dataset.grabadoUrl || '';
+
+        if (metodo==='serigrafía' || metodo==='serigrafia' || metodo==='tampografía' || metodo==='tampografia'){
+          const coloresOK = (parseInt(coloresEl.value,10) >= 1);
+          eColores.style.display = coloresOK ? 'none' : 'block';
+          ok &= coloresOK;
+        } else {
+          eColores.style.display = 'none';
+        }
+
+        if (metodo==='grabado láser' || metodo==='grabado laser'){
+          if (grabadoCheck.checked){
+            const hasFile = !!grabadoUrl;
+            ok &= hasFile;
+          }
+        }
+
+        if (!chkSameDate.checked){
+          const modo  = block.querySelector('.i-entrega-modo').value;
+          const dias  = block.querySelector('.i-dias');
+          const fecha = block.querySelector('.i-fecha');
+          const eDias = block.querySelector('.e-dias');
+          const eF    = block.querySelector('.e-fecha');
+
+          if (modo==='dias'){
+            const vDias = (dias.value !== '' && parseInt(dias.value,10) >= 0);
+            eDias.style.display = vDias ? 'none' : 'block';
+            ok &= vDias;
+          } else {
+            const vFecha = !!fecha.value;
+            eF.style.display = vFecha ? 'none' : 'block';
+            ok &= vFecha;
+          }
+        }
+      });
+
+      return !!ok;
+    }
+
+    // ======= Recolectar ítems =======
+    function collectItems(){
+      const useCommon = chkSameDate.checked;
+      const cmode = commonMode.value;
+      const arr = [];
+
+      Array.from(itemsWrap.children).forEach(block=>{
+        const modoItem  = block.querySelector('.i-entrega-modo').value;
+        const diasV     = block.querySelector('.i-dias').value;
+        const fechaV    = block.querySelector('.i-fecha').value;
+        const urls      = JSON.parse(block.dataset.fileUrls || '[]');
+
+        const metodo    = block.querySelector('.i-metodo').value.trim();
+        const colores   = (block.querySelector('.i-colores')?.value || '').trim();
+        const grabadoN  = !!(block.querySelector('.i-grabado-nombres')?.checked);
+        const grabadoU  = (block.dataset.grabadoUrl || '').trim();
+        const notasV    = (block.querySelector('.i-notas')?.value || '').trim();
+
+        arr.push({
+          producto: block.querySelector('.i-producto').value.trim(),
+          color:    block.querySelector('.i-color').value.trim(),
+          cantidad: String(parseInt(block.querySelector('.i-cantidad').value,10)||0),
+          metodo:   metodo,
+          tiempo:   useCommon
+                      ? (cmode==='dias' ? ((parseInt(commonDays.value,10)||0)+' días hábiles') : '—')
+                      : (modoItem==='dias' ? ((parseInt(diasV,10)||0)+' días hábiles') : '—'),
+          fecha:    useCommon ? (commonDate.value || '') : (fechaV || ''),
+          file_urls: urls,
+          colores: ( (metodo.toLowerCase()==='serigrafía' || metodo.toLowerCase()==='serigrafia' || metodo.toLowerCase()==='tampografía' || metodo.toLowerCase()==='tampografia') ? (colores||'') : '' ),
+          grabado_nombres: (metodo.toLowerCase()==='grabado láser' || metodo.toLowerCase()==='grabado laser') ? !!grabadoN : false,
+          grabado_file_url: (metodo.toLowerCase()==='grabado láser' || metodo.toLowerCase()==='grabado laser') ? (grabadoU||'') : '',
+          notas: notasV
+        });
+      });
+      return arr;
+    }
+
+    // ======= Submit =======
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      out.textContent = '';
+      if(!validate()) return;
+
+      const btn = document.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      out.textContent = 'Procesando…';
+
+      try {
+        // Subir OC (con subcarpeta del cliente)
+        let ocUrl = '';
+        if (ocFile.files && ocFile.files[0]){
+          const dataUrl = await fileToDataURL(ocFile.files[0]);
+          const folderName = (document.getElementById('razon_social').value || '').trim();
+          const resp = await uploadDataUrl('uploadOC', ocFile.files[0].name, ocFile.files[0].type, dataUrl, folderName);
+          if (resp && resp.ok && resp.url) {
+            ocUrl = resp.url;
+            ocUrlShow.textContent = ocUrl;
+          } else {
+            throw new Error('Error al subir Orden de Compra: ' + (resp && resp.message ? resp.message : 'desconocido'));
+          }
+        }
+
+        const itemsRaw = collectItems();
+
+        const payload = {
+          cliente_id   : (document.getElementById('cliente_id').value||'').trim(),
+          razon_social : (document.getElementById('razon_social').value||'').trim(),
+          cotizacion_num: (document.getElementById('cotizacion_num').value||'').trim(),
+          observaciones: (document.getElementById('observaciones')?.value||'').trim(),
+          precio_final     : String(parseInt((document.getElementById('precio_final').value||'').replace(/[^\d]/g,''),10)||0),
+          costo_transporte : String(parseInt((document.getElementById('costo_transporte').value||'').replace(/[^\d]/g,''),10)||0),
+          oc_num   : (document.getElementById('oc_num').value||'').trim(),
+          oc_fecha : (document.getElementById('oc_fecha').value||'').trim(),
+          oc_url   : ocUrl,
+
+          pago_condicion : pagoCondEl.value,
+          pago_detalle   : (pagoCondEl.value==='Personalizado' ? (pagoDetEl.value||'').trim() : (pagoDetEl.value||'')),
+          transporte_modo    : transpModoEl.value,
+          transporte_pref    : transpPrefEl.value,
+          transporte_detalle : (transpPrefEl.value==='Otro' ? (transpDetEl.value||'').trim() : (transpDetEl.value||'')),
+
+          items    : itemsRaw
+        };
+
+        google.script.run
+          .withSuccessHandler(resp=>{
+            btn.disabled=false;
+            if (resp && resp.ok){
+              out.innerHTML = '<div class="ok">✅ '+resp.message+'</div>';
+              form.reset(); itemsWrap.innerHTML=''; addItem();
+              // reset totales
+              precioEl.value = '$ 0'; transpEl.value='$ 0'; descEl.value='$ 0';
+              sameDateWrap.style.display='none'; chkSameDate.checked=false;
+              ocUrlShow.textContent='';
+              // reset UI
+              pagoDetWrap.style.display = 'none';
+              transpDetWrap.style.display = 'none';
+            } else {
+              out.innerHTML = '<div class="bad">❌ ' + (resp ? resp.message : 'Error desconocido') + '</div>';
+            }
+          })
+          .withFailureHandler(err=>{
+            btn.disabled=false;
+            out.innerHTML = '<div class="bad">❌ Error servidor: ' + (err && err.message ? err.message : 'String(err)') + '</div>';
+          })
+          .saveOrden(payload);
+
+      } catch (err) {
+        btn.disabled=false;
+        out.innerHTML = '<div class="bad">❌ ' + (err && err.message ? err.message : 'Error desconocido') + '</div>';
+      }
+    });
+
+    // Pago & Transporte UI
+    function applyPagoUI(){ pagoDetWrap.style.display = (pagoCondEl.value === 'Personalizado') ? 'block' : 'none'; }
+    pagoCondEl?.addEventListener('change', applyPagoUI); applyPagoUI();
+    function applyTransporteUI(){ transpDetWrap.style.display = (transpPrefEl.value === 'Otro') ? 'block' : 'none'; }
+    transpPrefEl?.addEventListener('change', applyTransporteUI); applyTransporteUI();
+
+    // ======= Autocomplete clientes (fetch) =======
+    function init(){
+      google.script.run
+        .withSuccessHandler(list => {
+          CLIENTES = Array.isArray(list) ? list : [];
+          // Si el usuario pegó el ID antes de que cargara la base, completa ahora
+          if (elId.value && !elRazon.value) syncRazonFromId();
+        })
+        .withFailureHandler(() => { out.innerHTML = '<div class="bad">⚠️ No se pudo cargar la base de clientes.</div>'; })
+        .getClientesLite();
+    }
+    init();
+
+    // iOS cursor fix
+    (function(){ const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent); if(isIOS){ document.body.style.cursor='pointer'; }})();
+  </script>
+</body>
+</html>

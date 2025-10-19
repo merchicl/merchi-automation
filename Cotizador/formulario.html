@@ -1,0 +1,621 @@
+<!DOCTYPE html> 
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ingreso Cliente | Merchi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+  :root{
+    --bg:#f7f7f7;
+    --card:#fff;
+    --ink:#111;
+    --muted:#666;
+    --bd:#ddd;
+    --bd2:#eee;
+    --ok:#1a7f37;
+    --err:#b00020;
+    --brand:#0b53d0;
+  }
+  *{box-sizing:border-box}
+  body{
+    font-family:Arial,system-ui,sans-serif;
+    background:var(--bg);
+    margin:0;
+    color:var(--ink)
+  }
+  .wrap{max-width:900px;margin:0 auto;padding:24px}
+  .card{
+    background:var(--card);
+    border-radius:16px;
+    box-shadow:0 8px 24px rgba(0,0,0,.08);
+    padding:22px
+  }
+  .logo-container{text-align:center;margin-bottom:16px}
+  .logo{max-width:160px;height:auto}
+  h1{font-size:22px;margin:0 0 6px}
+  p.sub{margin:0 0 16px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .full{grid-column:1/-1}
+  label{font-weight:600;font-size:14px;display:block;margin:6px 0}
+  input:not([type="checkbox"]):not([type="radio"]), select{
+    width:100%; padding:10px 12px; border:1px solid var(--bd);
+    border-radius:10px; font-size:15px; background:#fff;
+  }
+  input[type="checkbox"], input[type="radio"]{
+    width:auto; height:18px; margin:0; padding:0; vertical-align:middle;
+    accent-color:var(--brand); cursor:pointer;
+  }
+  label.row{display:flex; align-items:center; gap:10px; font-weight:600; cursor:pointer;}
+  label.row input[type="checkbox"]{ position:relative; top:1px; }
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .muted{color:var(--muted);font-size:13px}
+  .err{color:var(--err);font-size:13px;margin-top:4px;display:none}
+  .is-error{border-color:var(--err)}
+  .ok{color:var(--ok);font-weight:600}
+  .bad{color:var(--err);font-weight:600}
+
+  .stepper{display:flex;align-items:center;gap:10px;margin:8px 0 16px}
+  .step{display:flex;align-items:center;gap:10px}
+  .step .dot{
+    width:28px;height:28px;border-radius:50%;
+    border:2px solid var(--bd);
+    display:grid;place-items:center;
+    font-weight:700;color:#777;background:#fff;
+    transition:border-color .2s,color .2s;
+  }
+  .step .label{font-weight:600;color:#333;transition:color .2s}
+  .bar{flex:1;height:4px;background:var(--bd2);border-radius:6px;overflow:hidden}
+  .bar>span{display:block;height:100%;width:0;background:var(--brand);transition:width .25s ease}
+  .step[aria-current="step"] .dot,.step.is-current .dot{border-color:var(--brand);color:var(--brand)}
+  .step[aria-current="step"] .label,.step.is-current .label{color:var(--brand)}
+
+  section{display:none}
+  section.active{display:block}
+
+  .wizard-nav{
+    position:sticky; bottom:0;
+    background:linear-gradient(180deg, rgba(255,255,255,.0), var(--card) 35%);
+    padding-top:10px;margin-top:10px
+  }
+  .btn{ padding:12px 18px;border-radius:10px;border:0; cursor:pointer;font-size:16px }
+  .btn-primary{background:#000;color:#fff}
+  .btn-secondary{background:#f1f1f1}
+  .btn[disabled]{opacity:.7;cursor:not-allowed}
+
+  .res-list{ list-style:none;padding:0;margin:0;
+    display:grid;grid-template-columns:1fr 1fr;gap:12px }
+  .res-item{ border:1px solid var(--bd2); border-radius:10px; padding:10px;background:#fafafa }
+  .res-item h4{margin:0 0 6px 0;font-size:14px}
+  .res-item p{margin:0;font-size:14px;color:#333}
+
+  @media (max-width:700px){
+    .grid{grid-template-columns:1fr}
+    .res-list{grid-template-columns:1fr}
+  }
+  .card{ position: relative; z-index: 0; }
+  .wizard-nav{ position: sticky; bottom: 0; z-index: 5; }
+  @media (max-width:700px){
+    .wizard-nav{
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 999;
+      box-shadow: 0 -8px 24px rgba(0,0,0,.08);
+    }
+    .wrap{ padding-bottom: 96px; }
+  }
+  .bar{ pointer-events: none; } 
+  .step, .step *{ pointer-events: auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo-container">
+      <img class="logo" src="https://merchi.cl/wp-content/uploads/2025/10/Logo-Merchi-Azul.png" alt="Merchi">
+    </div>
+
+    <div class="card">
+      <h1>Ingreso Cliente — Merchi</h1>
+      <p class="sub">Completa los datos para generar tu ingreso como cliente.</p>
+
+      <!-- Stepper -->
+      <div class="stepper" aria-label="Progreso">
+        <div class="step" id="s-ind-1" aria-current="step"><div class="dot">1</div><div class="label">Documento</div></div>
+        <div class="bar"><span id="bar" style="width:0%"></span></div>
+        <div class="step" id="s-ind-2"><div class="dot">2</div><div class="label">Empresa</div></div>
+        <div class="bar"><span></span></div>
+        <div class="step" id="s-ind-3"><div class="dot">3</div><div class="label">Contacto</div></div>
+        <div class="bar"><span></span></div>
+        <div class="step" id="s-ind-4"><div class="dot">4</div><div class="label">Despacho</div></div>
+        <div class="bar"><span></span></div>
+        <div class="step" id="s-ind-5"><div class="dot">5</div><div class="label">Resumen</div></div>
+      </div>
+
+      <form id="merchiForm" novalidate>
+        <!-- PASO 1 -->
+        <section id="step-1" class="active" data-step="1">
+          <div class="grid">
+            <div class="full">
+              <label for="tipo_doc">Selecciona documento tributario *</label>
+              <select name="tipo_doc" id="tipo_doc" required>
+                <option value="">Selecciona</option>
+                <option value="Factura">Factura</option>
+                <option value="Boleta">Boleta</option>
+              </select>
+              <div class="err" id="err-tipo_doc">Selecciona Boleta, Factura o Factura de exportación.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PASO 2 -->
+        <section id="step-2" data-step="2">
+          <div class="grid">
+            <div class="full">
+              <label for="empresa">Razón Social *</label>
+              <input name="empresa" id="empresa" required>
+              <div class="err" id="err-empresa">Ingresa la razón social.</div>
+            </div>
+
+            <div class="full">
+              <label for="giro">Giro *</label>
+              <input name="giro" id="giro" placeholder="Ej: Comercializadora, Servicios de Marketing" required>
+              <div class="err" id="err-giro">Ingresa el giro de la empresa.</div>
+            </div>
+
+            <div class="full">
+              <label>Identificación tributaria *</label>
+              <div class="row">
+                <label><input type="radio" name="id_tipo" value="RUT_CL" checked> RUT chileno</label>
+                <label><input type="radio" name="id_tipo" value="EXTRANJERO"> ID/DNI extranjero</label>
+              </div>
+            </div>
+
+            <div id="rut_cl_wrap">
+              <label for="rut">RUT (con guion) *</label>
+              <input name="rut" id="rut" placeholder="12.345.678-5">
+              <div class="err" id="err-rut">RUT inválido.</div>
+            </div>
+
+            <div id="id_ext_wrap" class="full" style="display:none">
+              <div class="grid">
+                <div>
+                  <label for="pais_fiscal">País fiscal *</label>
+                  <select name="pais_fiscal" id="pais_fiscal"></select>
+                  <div class="err" id="err-pais_fiscal">Selecciona el país fiscal.</div>
+                </div>
+                <div class="full">
+                  <label for="id_trib_valor">ID/DNI extranjero *</label>
+                  <input name="id_trib_valor" id="id_trib_valor" placeholder="Ej.: ESB12345678 / DE123456789 / MXRFC1234">
+                  <div class="err" id="err-id_trib_valor">Ingresa una identificación válida.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="full">
+              <label for="dirT_calle">Dirección Tributaria (calle y número) *</label>
+              <input name="dirT_calle" id="dirT_calle" placeholder="Calle, N°, Ciudad">
+            </div>
+            <div>
+              <label for="dirT_dpto">Dpto/Oficina</label>
+              <input name="dirT_dpto" id="dirT_dpto">
+            </div>
+            <div>
+              <label for="dirT_region">Región *</label>
+              <select name="dirT_region" id="dirT_region"></select>
+              <div class="err" id="err-dirT_region">Selecciona región.</div>
+            </div>
+            <div>
+              <label for="dirT_comuna">Comuna *</label>
+              <select name="dirT_comuna" id="dirT_comuna"></select>
+              <div class="err" id="err-dirT_comuna">Selecciona comuna.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PASO 3 -->
+        <section id="step-3" data-step="3">
+          <div class="grid">
+            <div>
+              <label for="contacto_nombre">Nombre *</label>
+              <input name="contacto_nombre" id="contacto_nombre" placeholder="Ej: María Pérez" required>
+              <div class="err" id="err-contacto_nombre">Ingresa el nombre.</div>
+            </div>
+            <div>
+              <label for="contacto_cargo">Cargo *</label>
+              <input name="contacto_cargo" id="contacto_cargo" placeholder="Ej: Compras / RR.HH." required>
+              <div class="err" id="err-contacto_cargo">Ingresa el cargo.</div>
+            </div>
+            <div class="full">
+              <label for="telefono_full">Teléfono *</label>
+              <input name="telefono_full" id="telefono_full" placeholder="+56912345678" required>
+              <div class="err" id="err-telefono">Teléfono inválido. Usa +[código][número] (8–15 dígitos)</div>
+              <div class="muted">Ej: +56966896422, +5492231234567</div>
+            </div>
+            <div class="full">
+              <label for="correo">Correo electrónico *</label>
+              <input type="email" name="correo" id="correo" placeholder="correo@empresa.cl" required>
+              <div class="err" id="err-correo">Correo inválido.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PASO 4 -->
+        <section id="step-4" data-step="4">
+          <div class="grid">
+            <div class="full">
+              <label style="cursor:pointer" class="row">
+                <input type="checkbox" id="dirT_same" name="dirT_same">
+                Usar la misma dirección que facturación
+              </label>
+              <p class="muted">Si marcas esta opción, copiamos y bloqueamos los campos de entrega.</p>
+            </div>
+
+            <div class="full">
+              <label for="direccionEntrega">Dirección de entrega (calle y número)</label>
+              <input name="direccionEntrega" id="direccionEntrega" placeholder="Calle, N°, Ciudad">
+            </div>
+            <div>
+              <label for="dpto">Dpto/Oficina</label>
+              <input name="dpto" id="dpto">
+            </div>
+            <div>
+              <label for="region">Región *</label>
+              <select name="region" id="region" required></select>
+              <div class="err" id="err-region">Selecciona región.</div>
+            </div>
+            <div>
+              <label for="comuna">Comuna *</label>
+              <select name="comuna" id="comuna" required></select>
+              <div class="err" id="err-comuna">Selecciona comuna.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PASO 5 -->
+        <section id="step-5" data-step="5">
+          <ul class="res-list" id="resumeList"></ul>
+          <p class="muted" style="margin-top:10px">Revisa los datos. Si algo falta, vuelve y corrige antes de enviar.</p>
+        </section>
+
+        <!-- Navegación -->
+        <div class="wizard-nav row" style="justify-content:space-between">
+          <button type="button" class="btn btn-secondary" id="btnPrev" disabled>Atrás</button>
+          <div class="row">
+            <button type="button" class="btn btn-primary" id="btnNext">Siguiente</button>
+            <button type="submit" class="btn btn-primary" id="btnSubmit" style="display:none">Enviar</button>
+          </div>
+        </div>
+      </form>
+
+      <div id="result" style="margin-top:14px;"></div>
+
+      <div id="idbox" style="display:none;background:#f3f6f4;border:1px dashed #9ac3a5;border-radius:10px;padding:10px;margin-top:10px">
+        <div>Tu <strong>ID de registro</strong> es: <span id="rid"></span>
+          <button id="copyBtn" class="btn btn-secondary" type="button" style="padding:6px 10px">Copiar</button>
+        </div>
+        <div class="muted">Compártelo a tu ejecutivo para identificar tu solicitud.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===== Países ===== */
+    const PAISES = ["Afganistán","Albania","Alemania","Andorra","Angola","Antigua y Barbuda","Arabia Saudita","Argelia","Argentina","Armenia","Australia","Austria","Azerbaiyán","Bahamas","Bangladés","Barbados","Baréin","Bélgica","Belice","Benín","Bielorrusia","Bolivia","Bosnia y Herzegovina","Botsuana","Brasil","Brunéi","Bulgaria","Burkina Faso","Burundi","Bután","Cabo Verde","Camboya","Camerún","Canadá","Catar","Chad","Chile","China","Chipre","Colombia","Comoras","Corea del Norte","Corea del Sur","Costa de Marfil","Costa Rica","Croacia","Cuba","Dinamarca","Dominica","Ecuador","Egipto","El Salvador","Emiratos Árabes Unidos","Eritrea","Eslovaquia","Eslovenia","España","Estados Unidos","Estonia","Eswatini","Etiopía","Filipinas","Finlandia","Fiyi","Francia","Gabón","Gambia","Georgia","Ghana","Granada","Grecia","Guatemala","Guinea","Guinea-Bisáu","Guinea Ecuatorial","Guyana","Haití","Honduras","Hungría","India","Indonesia","Irak","Irán","Irlanda","Islandia","Islas Marshall","Islas Salomón","Israel","Italia","Jamaica","Japón","Jordania","Kazajistán","Kenia","Kirguistán","Kiribati","Kuwait","Laos","Lesoto","Letonia","Líbano","Liberia","Libia","Liechtenstein","Lituania","Luxemburgo","Madagascar","Malasia","Malaui","Maldivas","Malí","Malta","Marruecos","Mauricio","Mauritania","México","Micronesia","Moldavia","Mónaco","Mongolia","Montenegro","Mozambique","Namibia","Nauru","Nepal","Nicaragua","Níger","Nigeria","Noruega","Nueva Zelanda","Omán","Países Bajos","Pakistán","Palaos","Panamá","Papúa Nueva Guinea","Paraguay","Perú","Polonia","Portugal","Reino Unido","República Centroafricana","República Checa","República del Congo","República Democrática del Congo","República Dominicana","Ruanda","Rumania","Rusia","Samoa","San Cristóbal y Nieves","San Marino","San Vicente y las Granadinas","Santa Lucía","Santo Tomé y Príncipe","Senegal","Serbia","Seychelles","Sierra Leona","Singapur","Siria","Somalia","Sri Lanka","Sudáfrica","Sudán","Sudán del Sur","Suecia","Suiza","Surinam","Tailandia","Tanzania","Tayikistán","Timor Oriental","Togo","Tonga","Trinidad y Tobago","Túnez","Turkmenistán","Turquía","Tuvalu","Ucrania","Uganda","Uruguay","Uzbekistán","Vanuatu","Vaticano","Venezuela","Vietnam","Yemen","Yibuti","Zambia","Zimbabue"];
+
+    /* ===== Regiones y comunas de Chile ===== */
+    const RC = {
+      "Arica y Parinacota":["Arica","Camarones","General Lagos","Putre"],
+      "Tarapacá":["Alto Hospicio","Camiña","Colchane","Huara","Iquique","Pica","Pozo Almonte"],
+      "Antofagasta":["Antofagasta","Calama","María Elena","Mejillones","Ollagüe","San Pedro de Atacama","Sierra Gorda","Taltal","Tocopilla"],
+      "Atacama":["Alto del Carmen","Caldera","Chañaral","Copiapó","Diego de Almagro","Freirina","Huasco","Tierra Amarilla","Vallenar"],
+      "Coquimbo":["Andacollo","Canela","Combarbalá","Coquimbo","Illapel","La Higuera","La Serena","Los Vilos","Monte Patria","Ovalle","Paiguano","Punitaqui","Río Hurtado","Salamanca","Vicuña"],
+      "Valparaíso":["Algarrobo","Cabildo","Calera","Calle Larga","Cartagena","Casablanca","Catemu","Concón","El Quisco","El Tabo","Hijuelas","Isla de Pascua","Juan Fernández","La Cruz","La Ligua","Limache","Llay-Llay","Los Andes","Nogales","Olmué","Panquehue","Papudo","Petorca","Puchuncaví","Putaendo","Quillota","Quilpué","Quintero","San Antonio","San Esteban","San Felipe","Santa María","Santo Domingo","Valparaíso","Villa Alemana","Viña del Mar","Zapallar"],
+      "Metropolitana de Santiago":["Alhué","Buin","Calera de Tango","Cerrillos","Cerro Navia","Colina","Conchalí","Curacaví","El Bosque","El Monte","Estación Central","Huechuraba","Independencia","Isla de Maipo","La Cisterna","La Florida","La Granja","La Pintana","La Reina","Lampa","Las Condes","Lo Barnechea","Lo Espejo","Lo Prado","Macul","Maipú","María Pinto","Melipilla","Ñuñoa","Padre Hurtado","Paine","Pedro Aguirre Cerda","Peñaflor","Peñalolén","Pirque","Providencia","Pudahuel","Puente Alto","Quilicura","Quinta Normal","Recoleta","Renca","San Bernardo","San Joaquín","San José de Maipo","San Miguel","San Pedro","San Ramón","Santiago","Talagante","Tiltil","Vitacura"],
+      "Libertador General Bernardo O'Higgins":["Chépica","Chimbarongo","Codegua","Coinco","Coltauco","Doñihue","Graneros","La Estrella","Las Cabras","Litueche","Lolol","Machalí","Malloa","Marchihue","Mostazal","Nancagua","Navidad","Olivar","Palmilla","Paredones","Peralillo","Peumo","Pichidegua","Pichilemu","Placilla","Pumanque","Quinta de Tilcoco","Rancagua","Rengo","Requínoa","San Fernando","San Vicente","Santa Cruz"],
+      "Maule":["Cauquenes","Chanco","Colbún","Constitución","Curepto","Curicó","Empedrado","Hualañé","Licantén","Linares","Longaví","Maule","Molina","Parral","Pelarco","Pelluhue","Pencahue","Rauco","Retiro","Río Claro","Romeral","Sagrada Familia","San Clemente","San Javier","San Rafael","Talca","Teno","Vichuquén","Villa Alegre","Yerbas Buenas"],
+      "Ñuble":["Bulnes","Chillán","Chillán Viejo","Cobquecura","Coelemu","Coihueco","El Carmen","Ninhue","Ñiquén","Pemuco","Pinto","Portezuelo","Quillón","Quirihue","Ránquil","San Carlos","San Fabián","San Ignacio","San Nicolás","Treguaco","Yungay"],
+      "Biobío":["Alto Biobío","Antuco","Arauco","Cabrero","Cañete","Chiguayante","Concepción","Contulmo","Coronel","Curanilahue","Florida","Hualpén","Hualqui","Laja","Lebu","Los Álamos","Los Ángeles","Lota","Mulchén","Nacimiento","Negrete","Penco","Quilaco","Quilleco","San Pedro de la Paz","San Rosendo","Santa Bárbara","Santa Juana","Talcahuano","Tirúa","Tomé","Tucapel","Yumbel"],
+      "La Araucanía":["Angol","Carahue","Cholchol","Collipulli","Cunco","Curacautín","Curarrehue","Ercilla","Freire","Galvarino","Gorbea","Lautaro","Loncoche","Lonquimay","Los Sauces","Lumaco","Melipeuco","Nueva Imperial","Padre Las Casas","Perquenco","Pitrufquén","Pucón","Purén","Renaico","Saavedra","Temuco","Teodoro Schmidt","Toltén","Traiguén","Victoria","Vilcún","Villarrica"],
+      "Los Ríos":["Corral","Futrono","La Unión","Lago Ranco","Lanco","Los Lagos","Máfil","Mariquina","Paillaco","Panguipulli","Río Bueno","Valdivia"],
+      "Los Lagos":["Ancud","Calbuco","Castro","Chaitén","Chonchi","Cochamó","Curaco de Vélez","Dalcahue","Fresia","Frutillar","Futaleufú","Hualaihué","Llanquihue","Los Muermos","Maullín","Osorno","Palena","Puerto Montt","Puerto Octay","Puerto Varas","Puqueldón","Purranque","Puyehue","Queilén","Quellón","Quemchi","Quinchao","Río Negro","San Juan de la Costa","San Pablo"],
+      "Aysén del Gral. C. Ibáñez del Campo":["Aysén","Chile Chico","Cisnes","Cochrane","Coyhaique","Guaitecas","Lago Verde","O'Higgins","Río Ibáñez","Tortel"],
+      "Magallanes y de la Antártica Chilena":["Antártica","Cabo de Hornos","Laguna Blanca","Natales","Porvenir","Primavera","Punta Arenas","Río Verde","San Gregorio","Timaukel","Torres del Paine"]
+    };
+
+    // ===== DOM/Estado =====
+    const form = document.getElementById('merchiForm');
+    const steps = [1,2,3,4,5]; let current = 1;
+
+    const tipoDocEl= document.getElementById('tipo_doc');
+    const radiosId = Array.from(document.querySelectorAll('input[name="id_tipo"]'));
+    const rutWrap  = document.getElementById('rut_cl_wrap');
+    const idExtWrap= document.getElementById('id_ext_wrap');
+    const paisFiscalEl = document.getElementById('pais_fiscal');
+
+    const dirT_regionEl = document.getElementById('dirT_region');
+    const dirT_comunaEl = document.getElementById('dirT_comuna');
+    const dirT_sameEl = document.getElementById('dirT_same');
+
+    const regionEl = document.getElementById('region');
+    const comunaEl = document.getElementById('comuna');
+
+    const telFullEl = document.getElementById('telefono_full');
+
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const btnSubmit = document.getElementById('btnSubmit');
+
+    const out  = document.getElementById('result');
+    const idbox= document.getElementById('idbox');
+    const rid  = document.getElementById('rid');
+    const copy = document.getElementById('copyBtn');
+
+    function showStep(n){
+      steps.forEach(i=>{
+        document.getElementById('step-'+i).classList.toggle('active', i===n);
+        const ind = document.getElementById('s-ind-'+i);
+        ind.setAttribute('aria-current', i===n ? 'step' : 'false');
+        ind.classList.toggle('is-current', i===n);
+      });
+      document.getElementById('bar').style.width = ((n-1)/4*100)+'%';
+      btnPrev.disabled = (n===1);
+      btnNext.style.display = (n<5) ? 'inline-block' : 'none';
+      btnSubmit.style.display = (n===5) ? 'inline-block' : 'none';
+      current = n;
+      if (n===4 && dirT_sameEl.checked) syncEntregaUI();
+      if (n===5) buildResume();
+    }
+
+    function poblarPaisFiscal() {
+      paisFiscalEl.innerHTML = '<option value="">Selecciona país</option>';
+      PAISES.forEach(p => paisFiscalEl.add(new Option(p, p)));
+    }
+    function poblarRegionesSelect(sel) {
+      sel.innerHTML = '<option value="">Selecciona región</option>';
+      Object.keys(RC).sort().forEach(r => sel.add(new Option(r, r)));
+    }
+    function poblarComunasSelect(region, selComuna) {
+      selComuna.innerHTML = '<option value="">Selecciona comuna</option>';
+      (RC[region] || []).slice().sort().forEach(c => selComuna.add(new Option(c, c)));
+    }
+    dirT_regionEl.addEventListener('change', () => poblarComunasSelect(dirT_regionEl.value, dirT_comunaEl));
+    regionEl.addEventListener('change', () => poblarComunasSelect(regionEl.value, comunaEl));
+
+    function syncIdUI() {
+      const val = (radiosId.find(r => r.checked) || {}).value;
+      if (val === 'RUT_CL') {
+        rutWrap.style.display = 'block';
+        idExtWrap.style.display = 'none';
+        if (tipoDocEl.value === 'Factura de exportación') tipoDocEl.value = 'Factura';
+      } else {
+        rutWrap.style.display = 'none';
+        idExtWrap.style.display = 'block';
+        if (!tipoDocEl.value || tipoDocEl.value === 'Boleta') tipoDocEl.value = 'Factura de exportación';
+      }
+    }
+    radiosId.forEach(r => r.addEventListener('change', syncIdUI));
+
+    function syncEntregaUI() {
+      const same = dirT_sameEl.checked;
+      const dirT_calleEl = document.getElementById('dirT_calle');
+      const dirT_dptoEl  = document.getElementById('dirT_dpto');
+      const dirE_calleEl = document.getElementById('direccionEntrega');
+      const dirE_dptoEl  = document.getElementById('dpto');
+
+      if (same) {
+        dirE_calleEl.value = dirT_calleEl.value;
+        dirE_dptoEl.value  = dirT_dptoEl.value;
+        regionEl.value = dirT_regionEl.value || '';
+        poblarComunasSelect(regionEl.value, comunaEl);
+        comunaEl.value = dirT_comunaEl.value || '';
+        [dirE_calleEl, dirE_dptoEl, regionEl, comunaEl].forEach(el => el.setAttribute('disabled','disabled'));
+      } else {
+        [dirE_calleEl, dirE_dptoEl, regionEl, comunaEl].forEach(el => el.removeAttribute('disabled'));
+      }
+    }
+    dirT_sameEl.addEventListener('change', syncEntregaUI);
+    ['dirT_calle','dirT_dpto','dirT_region','dirT_comuna'].forEach(id=>{
+      document.getElementById(id).addEventListener('change', ()=>{ if (dirT_sameEl.checked) syncEntregaUI(); });
+    });
+
+    const showErr = (id, show) => { const el = document.getElementById(id); if (el) el.style.display = show ? 'block' : 'none'; };
+    const mark = (el, bad) => { if(!el) return; el.classList.toggle('is-error', !!bad); };
+    const validarEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v||'');
+    const validarRut = v => {
+      if(!v) return false;
+      v = v.replace(/\./g,'').toUpperCase();
+      if(!/^\d{1,9}-[\dK]$/.test(v)) return false;
+      const [num,dv]=v.split('-'); let s=0,m=2;
+      for(let i=num.length-1;i>=0;i--){ s+=parseInt(num[i],10)*m; m=(m===7)?2:m+1; }
+      const r=11-(s%11); const dvC=(r===11)?'0':(r===10?'K':String(r));
+      return dvC===dv;
+    };
+    const validarTelFull = v => /^\+\d{8,15}$/.test((v||'').replace(/[\s\-.]/g,''));
+    const validarIdExtranjera = v => /^[A-Z0-9\-\.\/]{3,30}$/i.test((v||'').trim());
+
+    function validateStep1(){
+      let ok=true;
+      showErr('err-tipo_doc', !tipoDocEl.value); mark(tipoDocEl, !tipoDocEl.value); ok &= !!tipoDocEl.value;
+      return !!ok;
+    }
+    function validateStep2(){
+      let ok=true;
+      const empresa  = document.getElementById('empresa');
+      showErr('err-empresa', !empresa.value.trim()); mark(empresa, !empresa.value.trim()); ok &= !!empresa.value.trim();
+
+      const giro = document.getElementById('giro');
+      showErr('err-giro', !giro.value.trim()); mark(giro, !giro.value.trim()); ok &= !!giro.value.trim();
+
+      const idTipo = (radiosId.find(r => r.checked) || {}).value;
+      if (idTipo === 'RUT_CL') {
+        const rutInput = document.getElementById('rut');
+        const rutOk = validarRut(rutInput.value.trim());
+        showErr('err-rut', !rutOk); mark(rutInput, !rutOk); ok &= rutOk;
+      } else {
+        const paisOk = !!paisFiscalEl.value;
+        showErr('err-pais_fiscal', !paisOk); mark(paisFiscalEl, !paisOk); ok &= paisOk;
+        const idOk = validarIdExtranjera(document.getElementById('id_trib_valor').value);
+        showErr('err-id_trib_valor', !idOk); mark(document.getElementById('id_trib_valor'), !idOk); ok &= idOk;
+      }
+      showErr('err-dirT_region', !dirT_regionEl.value); mark(dirT_regionEl, !dirT_regionEl.value); ok &= !!dirT_regionEl.value;
+      showErr('err-dirT_comuna', !dirT_comunaEl.value); mark(dirT_comunaEl, !dirT_comunaEl.value); ok &= !!dirT_comunaEl.value;
+      return !!ok;
+    }
+    function validateStep3(){
+      let ok=true;
+      const contactoN= document.getElementById('contacto_nombre');
+      const contactoC= document.getElementById('contacto_cargo');
+      const mail     = document.getElementById('correo');
+      const telOk = validarTelFull(document.getElementById('telefono_full').value.trim());
+
+      showErr('err-contacto_nombre', !contactoN.value.trim()); mark(contactoN, !contactoN.value.trim()); ok &= !!contactoN.value.trim();
+      showErr('err-contacto_cargo', !contactoC.value.trim());  mark(contactoC, !contactoC.value.trim()); ok &= !!contactoC.value.trim();
+      showErr('err-telefono', !telOk); mark(telFullEl, !telOk); ok &= telOk;
+
+      const mailOk = validarEmail(mail.value.trim());
+      showErr('err-correo', !mailOk); mark(mail, !mailOk); ok &= mailOk;
+
+      return !!ok;
+    }
+    function validateStep4(){
+      let ok=true;
+      showErr('err-region', !regionEl.value); mark(regionEl, !regionEl.value); ok &= !!regionEl.value;
+      showErr('err-comuna', !comunaEl.value); mark(comunaEl, !comunaEl.value); ok &= !!comunaEl.value;
+      return !!ok;
+    }
+
+    function buildResume(){
+      const g = id => (document.getElementById(id)?.value || '').trim();
+      const gv = (label, val) => val ? `<div class="res-item"><h4>${label}</h4><p>${val}</p></div>` : '';
+      const idTipo = (document.querySelector('input[name="id_tipo"]:checked')||{}).value || '';
+
+      const doc = g('tipo_doc');
+      const empresa = g('empresa');
+      const giro = g('giro');
+
+      const idStr = (idTipo==='RUT_CL') ? g('rut') : g('id_trib_valor');
+      const idLabel = (idTipo==='RUT_CL') ? 'RUT' : 'ID extranjero';
+      const pais = (idTipo==='RUT_CL') ? '' : g('pais_fiscal');
+
+      const factStr = [g('dirT_calle'), g('dirT_comuna'), g('dirT_region')].filter(Boolean).join(', ');
+      const entStr  = [g('direccionEntrega'), g('comuna'), g('region')].filter(Boolean).join(', ');
+
+      const contacto = g('contacto_nombre');
+      const cargo = g('contacto_cargo');
+      const tel = g('telefono_full');
+      const mail = g('correo');
+
+      const html = [
+        gv('Documento', doc),
+        gv('Razón Social', empresa),
+        gv('Giro', giro),
+        gv(idLabel, idStr),
+        gv('País fiscal', pais),
+        gv('Dirección de facturación', factStr),
+        gv('Dirección de entrega', entStr),
+        gv('Contacto', contacto),
+        gv('Cargo', cargo),
+        gv('Teléfono', tel),
+        gv('Correo', mail),
+      ].join('');
+
+      document.getElementById('resumeList').innerHTML = html || '<li class="res-item"><p>Sin datos</p></li>';
+    }
+
+    document.getElementById('btnPrev').addEventListener('click', ()=>{ if(current>1) showStep(current-1); });
+    document.getElementById('btnNext').addEventListener('click', ()=>{
+      let pass = true;
+      if (current===1) pass = validateStep1();
+      if (current===2) pass = validateStep2();
+      if (current===3) pass = validateStep3();
+      if (current===4) pass = validateStep4();
+      if (!pass) return;
+      if (current===4 && dirT_sameEl.checked) syncEntregaUI();
+      showStep(current+1);
+    });
+
+    // Limpieza de RUT antes de enviar (además del backend)
+    function normalizeRutFront(v){
+      return (v||'').toString().trim().toUpperCase()
+        .replace(/\./g,'')
+        .replace(/\s+/g,'')
+        .replace(/\.+$/,'');
+    }
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      if (!validateStep1() || !validateStep2() || !validateStep3() || !validateStep4()) { showStep(1); return; }
+      if (dirT_sameEl.checked) syncEntregaUI();
+
+      document.getElementById('btnSubmit').disabled = true;
+      out.textContent = 'Enviando…';
+      idbox.style.display = 'none';
+
+      const data = Object.fromEntries(new FormData(form).entries());
+      data.id_tipo = (document.querySelector('input[name="id_tipo"]:checked') || {}).value || 'RUT_CL';
+      if (data.id_tipo === 'RUT_CL') data.rut = normalizeRutFront(data.rut);
+
+      google.script.run
+        .withSuccessHandler(resp => {
+          if (resp && resp.ok) {
+            out.innerHTML = '<div class="ok">✅ ' + resp.message + '</div>';
+            rid.textContent = resp.id || '';
+            if (resp.id) idbox.style.display = 'block';
+            try{ localStorage.removeItem('merchiLeadDraft'); }catch(e){}
+            form.reset();
+            poblarRegionesSelect(dirT_regionEl); dirT_comunaEl.innerHTML = '<option value="">Selecciona comuna</option>';
+            poblarRegionesSelect(regionEl);      comunaEl.innerHTML      = '<option value="">Selecciona comuna</option>';
+            syncIdUI();
+            showStep(1);
+          } else {
+            out.innerHTML = '<div class="bad">❌ ' + (resp ? resp.message : 'Error desconocido') + '</div>';
+          }
+          document.getElementById('btnSubmit').disabled = false;
+        })
+        .withFailureHandler(err => {
+          out.innerHTML = '<div class="bad">❌ Error servidor: ' + (err && err.message ? err.message : err) + '</div>';
+          document.getElementById('btnSubmit').disabled = false;
+        })
+        .saveLead(data);
+    });
+
+    // Draft local mínimo (opcional)
+    form.addEventListener('input', ()=>{
+      try{ localStorage.setItem('merchiLeadDraft', JSON.stringify(Object.fromEntries(new FormData(form).entries()))); }catch(e){}
+    });
+    function loadDraft(){
+      try{
+        const raw = localStorage.getItem('merchiLeadDraft'); if(!raw) return;
+        const data = JSON.parse(raw);
+        Object.entries(data).forEach(([k,v])=>{
+          const el = form.elements[k]; if (!el) return;
+          if (el.type==='radio'){
+            const r = form.querySelector(`input[name="${k}"][value="${v}"]`);
+            if (r) r.checked = true;
+          } else if (el.type==='checkbox'){
+            el.checked = (v===true || v==='true' || v==='on');
+          } else { el.value = v; }
+        });
+        poblarComunasSelect(dirT_regionEl.value, dirT_comunaEl);
+        poblarComunasSelect(regionEl.value, comunaEl);
+        syncIdUI();
+        if (dirT_sameEl.checked) syncEntregaUI();
+      }catch(e){}
+    }
+
+    // Copiar ID
+    document.getElementById('copyBtn').addEventListener('click', async ()=>{
+      try { await navigator.clipboard.writeText(rid.textContent.trim()); 
+        document.getElementById('copyBtn').textContent='Copiado'; 
+        setTimeout(()=>document.getElementById('copyBtn').textContent='Copiar',1200); 
+      } catch(e){}
+    });
+
+    function init(){
+      poblarPaisFiscal();
+      poblarRegionesSelect(dirT_regionEl); dirT_comunaEl.innerHTML = '<option value="">Selecciona comuna</option>';
+      poblarRegionesSelect(regionEl);      comunaEl.innerHTML      = '<option value="">Selecciona comuna</option>';
+      syncIdUI();
+      loadDraft();
+    }
+    init();
+  </script>
+</body>
+</html>
